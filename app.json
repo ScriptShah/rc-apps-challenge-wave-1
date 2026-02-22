@@ -1,0 +1,15 @@
+{
+    "id": "0e8a7aee-bce4-4f24-b241-5990e929a654",
+    "version": "0.0.1",
+    "requiredApiVersion": "^1.44.0",
+    "iconFile": "icon.png",
+    "author": {
+        "name": "Ahmadshah Donishyar",
+        "homepage": "github.com/scriptshah",
+        "support": "https://github.com/ScriptShah/rc-apps-challenge-wave-1"
+    },
+    "name": "scriptshah",
+    "nameSlug": "scriptshah",
+    "classFile": "ScriptshahApp.ts",
+    "description": "A Rocket.Chat app that handles mentions, toggles state via /scriptshah slash commands, and integrates with an external REST API logger."
+}
