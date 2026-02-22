@@ -1,22 +1,53 @@
-# scriptshah
-A Rocket.Chat app that handles mentions, toggles state via /scriptshah slash commands, and integrates with an external REST API logger.
+# scriptshah Rocket.Chat Challenge App
 
-## Getting Started
-Now that you have generated a blank default Rocket.Chat App, what are you supposed to do next?
-Start developing! Open up your favorite editor, our recommended one is Visual Studio code,
-and start working on your App. Once you have something ready to test, you can either
-package it up and manually deploy it to your test instance or you can use the CLI to do so.
-Here are some commands to get started:
-- `rc-apps package`: this command will generate a packaged app file (zip) which can be installed **if** it compiles with TypeScript
-- `rc-apps deploy`: this will do what `package` does but will then ask you for your server url, username, and password to deploy it for you
+This app solves the challenge requirements by:
 
-## Documentation
-Here are some links to examples and documentation:
-- [Rocket.Chat Apps TypeScript Definitions Documentation](https://rocketchat.github.io/Rocket.Chat.Apps-engine/)
-- [Rocket.Chat Apps TypeScript Definitions Repository](https://github.com/RocketChat/Rocket.Chat.Apps-engine)
-- [Example Rocket.Chat Apps](https://github.com/graywolf336/RocketChatApps)
-- Community Forums
-  - [App Requests](https://forums.rocket.chat/c/rocket-chat-apps/requests)
-  - [App Guides](https://forums.rocket.chat/c/rocket-chat-apps/guides)
-  - [Top View of Both Categories](https://forums.rocket.chat/c/rocket-chat-apps)
-- [#rocketchat-apps on Open.Rocket.Chat](https://open.rocket.chat/channel/rocketchat-apps)
+- Providing `/scriptshah on` and `/scriptshah off` slash commands.
+- Capturing full messages that mention `@scriptshah` when ON.
+- Sending an ephemeral acknowledgment to the user who mentioned `@scriptshah`.
+- Exposing an **External Logger** app setting that accepts a URL.
+- If **External Logger** is configured, POSTing `{ userid, message }` to the endpoint and showing `result [id]` from the response.
+
+## Commands
+
+- `/scriptshah on` → Enables mention capture + responses.
+- `/scriptshah off` → Disables mention capture + responses.
+
+## App Setting
+
+In Rocket.Chat app settings:
+
+- **External Logger** (`External_Logger`) - optional URL
+  - Empty: app uses default ephemeral message.
+  - Set: app calls this endpoint via POST and uses the returned payload.
+
+Expected JSON response format:
+
+```json
+{
+  "id": "123",
+  "result": "Thanks from external logger"
+}
+```
+
+## Local Development
+
+```bash
+npm install
+npx tsc --noEmit
+```
+
+## Deploy to Rocket.Chat
+
+```bash
+rc-apps deploy
+```
+
+Then test both modes:
+
+1. Run `/scriptshah on`.
+2. Mention `@scriptshah` from another user.
+3. Verify ephemeral message appears.
+4. Set **External Logger** URL in app settings.
+5. Mention `@scriptshah` again and verify response uses `result [id]`.
+6. Run `/scriptshah off` and confirm mentions no longer trigger response.
