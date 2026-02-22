@@ -14,10 +14,16 @@ import {
     RocketChatAssociationModel,
     RocketChatAssociationRecord,
 } from '@rocket.chat/apps-engine/definition/metadata';
-import { ISetting, SettingType } from '@rocket.chat/apps-engine/definition/settings';
-import { APP_STATUS_ASSOCIATION, ScriptShahCommand } from './slashcommands/ScriptShahCommand';
+import {
+    ISetting,
+    SettingType,
+} from '@rocket.chat/apps-engine/definition/settings';
+import {
+    APP_STATUS_ASSOCIATION,
+    ScriptShahCommand,
+} from './slashcommands/ScriptShahCommand';
 
-const EXTERNAL_LOGGER_SETTING_ID = 'external_logger_url';
+const EXTERNAL_LOGGER_SETTING_ID = 'External_Logger';
 const MY_USERNAME = 'scriptshah';
 
 export class ScriptshahApp extends App implements IPostMessageSent {
@@ -37,11 +43,13 @@ export class ScriptshahApp extends App implements IPostMessageSent {
         persistence: IPersistence,
         modify: IModify,
     ): Promise<void> {
-        if (!this.isMentionForMe(message.text) || message.sender.username === MY_USERNAME) {
+        if (!message.text || !message.text.includes(`@${MY_USERNAME}`)) {
             return;
         }
 
-        const statusData = await read.getPersistenceReader().readByAssociation(APP_STATUS_ASSOCIATION);
+        const statusData = await read
+            .getPersistenceReader()
+            .readByAssociation(APP_STATUS_ASSOCIATION);
         const isEnabled = statusData.length > 0 && Boolean((statusData[0] as { enabled?: boolean }).enabled);
 
         if (!isEnabled) {
@@ -50,8 +58,12 @@ export class ScriptshahApp extends App implements IPostMessageSent {
 
         await this.captureMention(message, persistence);
 
-        const externalLoggerUrl = await read.getEnvironmentReader().getSettings().getValueById(EXTERNAL_LOGGER_SETTING_ID);
-        const responseText = await this.buildEphemeralText(message, externalLoggerUrl, http);
+        const externalLoggerUrl = await read
+            .getEnvironmentReader()
+            .getSettings()
+            .getValueById(EXTERNAL_LOGGER_SETTING_ID);
+
+        const responseText = await this.getEphemeralText(message, externalLoggerUrl, http);
 
         const ephemeralBuilder = modify
             .getCreator()
@@ -62,17 +74,8 @@ export class ScriptshahApp extends App implements IPostMessageSent {
         await modify.getNotifier().notifyUser(message.sender, ephemeralBuilder.getMessage());
     }
 
-    private isMentionForMe(text?: string): boolean {
-        if (!text) {
-            return false;
-        }
-
-        const mentionPattern = new RegExp(`(^|\\s)@${MY_USERNAME}\\b`);
-        return mentionPattern.test(text);
-    }
-
     private async captureMention(message: IMessage, persistence: IPersistence): Promise<void> {
-        const captureAssociation = new RocketChatAssociationRecord(
+        const association = new RocketChatAssociationRecord(
             RocketChatAssociationModel.MISC,
             `scriptshah-capture-${Date.now()}`,
         );
@@ -85,61 +88,57 @@ export class ScriptshahApp extends App implements IPostMessageSent {
                 message: message.text,
                 createdAt: new Date().toISOString(),
             },
-            captureAssociation,
+            association,
         );
     }
 
-    private async buildEphemeralText(message: IMessage, externalLoggerUrl: string, http: IHttp): Promise<string> {
+    private async getEphemeralText(
+        message: IMessage,
+        externalLoggerUrl: string,
+        http: IHttp,
+    ): Promise<string> {
         if (!externalLoggerUrl || externalLoggerUrl.trim() === '') {
             return `Thank you for mentioning me, ${message.sender.username}`;
         }
 
         try {
             const response = await http.post(externalLoggerUrl, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 data: {
                     userid: message.sender.id,
                     message: message.text,
                 },
             });
 
-            const payload = this.parseExternalResponse(response);
-            if (payload?.result && payload?.id !== undefined) {
-                return `${payload.result} (${payload.id})`;
+            const data = response?.data as { id?: string | number; result?: string };
+
+            if (data?.result && data?.id !== undefined) {
+                return `${data.result} [${data.id}]`;
             }
+
+            if (data?.result) {
+                return data.result;
+            }
+
+            this.getLogger().warn('External logger response did not include result field.');
         } catch (error) {
-            this.getLogger().error('External logger request failed', error);
+            this.getLogger().error('Error calling External Logger endpoint.', error);
         }
 
         return `Thank you for mentioning me, ${message.sender.username}`;
-    }
-
-    private parseExternalResponse(response: {
-        data?: unknown;
-        content?: string;
-    }): { id?: string | number; result?: string } | undefined {
-        if (response.data && typeof response.data === 'object') {
-            return response.data as { id?: string | number; result?: string };
-        }
-
-        if (!response.content) {
-            return undefined;
-        }
-
-        try {
-            return JSON.parse(response.content) as { id?: string | number; result?: string };
-        } catch {
-            return undefined;
-        }
     }
 
     private getExternalLoggerSetting(): ISetting {
         return {
             id: EXTERNAL_LOGGER_SETTING_ID,
             type: SettingType.STRING,
-            packageValue: '',
+            i18nLabel: 'External Logger',
+            i18nDescription: 'Optional REST endpoint URL to receive mention payloads.',
             required: false,
             public: false,
-            i18nLabel: 'External Logger',
+            packageValue: '',
         };
     }
 }
