@@ -11,5 +11,19 @@
     "name": "scriptshah",
     "nameSlug": "scriptshah",
     "classFile": "ScriptshahApp.ts",
-    "description": "A Rocket.Chat app that handles mentions, toggles state via /scriptshah slash commands, and integrates with an external REST API logger."
+    "description": "A Rocket.Chat app that handles mentions, toggles state via /scriptshah slash commands, and integrates with an external REST API logger.",
+    "settings": [
+        {
+            "id": "External_Logger",
+            "type": "string",
+            "public": false,
+            "packageValue": "",
+            "required": false,
+            "i18nLabel": "External Logger",
+            "i18nDescription": "Optional URL to POST mentions to as JSON with fields 'userid' and 'message'."
+        }
+    ],
+    "implements": [
+        "IPostMessageSent"
+    ]
 }

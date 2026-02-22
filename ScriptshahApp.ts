@@ -63,8 +63,14 @@ export class ScriptshahApp extends App implements IPostMessageSent {
                     },
                 });
 
-                if (response.data && response.data.result) {
-                    replyText = response.data.result;
+                if (response.data) {
+                    const res = response.data.result || '';
+                    const id = response.data.id;
+                    if (res && id) {
+                        replyText = `${res} [${id}]`;
+                    } else if (res) {
+                        replyText = res;
+                    }
                 }
             } catch (error) {
                 this.getLogger().error('Error calling External Logger:', error);
