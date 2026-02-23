@@ -1,23 +1,27 @@
-# scriptshah Rocket.Chat challenge app
+# scriptshah Rocket.Chat Challenge App
 
-This app supports the challenge flow:
+This app solves the challenge requirements by:
 
-- `/scriptshah on` and `/scriptshah off` toggle mention handling.
-- While ON, mentions of `@scriptshah` are captured and the sender receives an ephemeral reply.
-- Optional setting **External Logger** (`external_logger_url`) switches reply mode to an external API call.
+- Providing `/scriptshah on` and `/scriptshah off` slash commands.
+- Capturing full messages that mention `@scriptshah` when ON.
+- Sending an ephemeral acknowledgment to the user who mentioned `@scriptshah`.
+- Exposing an **External Logger** app setting that accepts a URL.
+- If **External Logger** is configured, POSTing `{ userid, message }` to the endpoint and showing `result [id]` from the response.
 
-## External logger behavior
+## Commands
 
-When `external_logger_url` is set, the app sends:
+- `/scriptshah on` → Enables mention capture + responses.
+- `/scriptshah off` → Disables mention capture + responses.
 
-```json
-{
-  "userid": "<sender-id>",
-  "message": "<full-message-text>"
-}
-```
+## App Setting
 
-Expected response:
+In Rocket.Chat app settings:
+
+- **External Logger** (`External_Logger`) - optional URL
+  - Empty: app uses default ephemeral message.
+  - Set: app calls this endpoint via POST and uses the returned payload.
+
+Expected JSON response format:
 
 ```json
 {
@@ -26,34 +30,24 @@ Expected response:
 }
 ```
 
-Ephemeral reply will be formatted as:
+## Local Development
 
-`<result> (<id>)`
+```bash
+npm install
+npx tsc --noEmit
+```
 
-## Quick test checklist
+## Deploy to Rocket.Chat
+
+```bash
+rc-apps deploy
+```
+
+Then test both modes:
 
 1. Run `/scriptshah on`.
-2. Mention `@scriptshah` from another user and confirm ephemeral reply.
-3. Set **External Logger** URL in app settings.
-4. Mention again and confirm reply is based on API `result` and `id`.
-5. Run `/scriptshah off` and confirm no reply is sent.
-
-## What screenshots to send for challenge review
-
-Share 2-3 screenshots that prove behavior instead of code:
-
-1. **App Setting Screenshot**
-   - Open **Administration → Apps → Installed Apps → scriptshah → Settings**.
-   - Show the `External Logger` (`external_logger_url`) field with a URL filled in.
-
-2. **Default Mode Screenshot (URL empty)**
-   - Leave `external_logger_url` empty.
-   - Run `/scriptshah on`, mention `@scriptshah` from another user.
-   - Capture the ephemeral message: `Thank you for mentioning me, <username>`.
-
-3. **API Mode Screenshot (URL set)**
-   - Set `external_logger_url` to a test endpoint (for example webhook.site or a mock API that returns `{ "result": "...", "id": "..." }`).
-   - Mention `@scriptshah` again.
-   - Capture the ephemeral message that shows: `<result> (<id>)`.
-
-Optional extra screenshot (if needed): run `/scriptshah off` and show that mentioning `@scriptshah` no longer triggers a reply.
+2. Mention `@scriptshah` from another user.
+3. Verify ephemeral message appears.
+4. Set **External Logger** URL in app settings.
+5. Mention `@scriptshah` again and verify response uses `result [id]`.
+6. Run `/scriptshah off` and confirm mentions no longer trigger response.
